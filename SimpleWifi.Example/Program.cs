@@ -1,4 +1,4 @@
-﻿using SimpleWifi;
+using SimpleWifi;
 using SimpleWifi.Win32;
 using System;
 using System.Collections.Generic;
@@ -10,230 +10,285 @@ using System.Threading.Tasks;
 
 namespace SimpleWifi.Example
 {
-	internal class Program
-	{
-		private static Wifi wifi;
+    internal class Program
+    {
+        private static Wifi wifi;
 
-		private static void Main(string[] args)
-		{
-			// Init wifi object and event handlers
-			wifi = new Wifi();
-			wifi.ConnectionStatusChanged += wifi_ConnectionStatusChanged;
+        private static void Main(string[] args)
+        {
+            //ConnectByCommand();
+            ConnectByNamePassword("home_hao", "13817601846");
+        }
 
-			if (wifi.NoWifiAvailable)
-				Console.WriteLine("\r\n-- NO WIFI CARD WAS FOUND --");
+        private static void ConnectByNamePassword(string name, string passwod)
+        {
+            while (true)
+            {
+                wifi = new Wifi();
+                // wifi.ConnectionStatusChanged += wifi_ConnectionStatusChanged;
+                if (wifi.NoWifiAvailable)
+                    Console.WriteLine("\r\n-- NO WIFI CARD WAS FOUND --");
 
-			string command = "";
-			do
-			{
-				Console.WriteLine("\r\n-- COMMAND LIST --");
-				Console.WriteLine("L. List access points");
-				Console.WriteLine("C. Connect");
-				Console.WriteLine("D. Disconnect");
-				Console.WriteLine("S. Status");
-				Console.WriteLine("X. Print profile XML");
-				Console.WriteLine("R. Remove profile");
-				Console.WriteLine("I. Show access point information");
-				Console.WriteLine("Q. Quit");
+                Connect(name, passwod);
+                Thread.Sleep(1000 * 30);
+            }
 
-				command = Console.ReadLine().ToLower();
+        }
 
-				Execute(command);
-			} while (command != "q");
-		}
+        private static void ConnectByCommand()
+        {
+            // Init wifi object and event handlers
+            wifi = new Wifi();
+            wifi.ConnectionStatusChanged += wifi_ConnectionStatusChanged;
 
-		private static void Execute(string command)
-		{
-			switch (command)
-			{
-				case "l":
-					List();
-					break;
-				case "d":
-					Disconnect();
-					break;
-				case "c":
-					Connect();
-					break;
-				case "s":
-					Status();
-					break;
-				case "x":
-					ProfileXML();
-					break;
-				case "r":
-					DeleteProfile();
-					break;
-				case "i":
-					ShowInfo();
-					break;
-				case "q":
-					break;
-				default:
-					Console.WriteLine("\r\nIncorrect command.");
-					break;
-			}
-		}
+            if (wifi.NoWifiAvailable)
+                Console.WriteLine("\r\n-- NO WIFI CARD WAS FOUND --");
 
-		private static void Disconnect()
-		{
-			wifi.Disconnect();
-		}
+            string command = "";
+            do
+            {
+                Console.WriteLine("\r\n-- COMMAND LIST --");
+                Console.WriteLine("L. List access points");
+                Console.WriteLine("C. Connect");
+                Console.WriteLine("D. Disconnect");
+                Console.WriteLine("S. Status");
+                Console.WriteLine("X. Print profile XML");
+                Console.WriteLine("R. Remove profile");
+                Console.WriteLine("I. Show access point information");
+                Console.WriteLine("Q. Quit");
 
-		private static void Status()
-		{
-			Console.WriteLine("\r\n-- CONNECTION STATUS --");
-			if (wifi.ConnectionStatus == WifiStatus.Connected)
-				Console.WriteLine("You are connected to a wifi");
-			else
-				Console.WriteLine("You are not connected to a wifi");
-		}
+                command = Console.ReadLine().ToLower();
 
-		private static IEnumerable<AccessPoint> List()
-		{
-			Console.WriteLine("\r\n-- Access point list --");
-			IEnumerable<AccessPoint> accessPoints = wifi.GetAccessPoints().OrderByDescending(ap => ap.SignalStrength);
-
-			int i = 0;
-			foreach (AccessPoint ap in accessPoints)
-				Console.WriteLine("{0}. {1} {2}% Connected: {3}", i++, ap.Name, ap.SignalStrength, ap.IsConnected);
-
-			return accessPoints;
-		}
+                Execute(command);
+            } while (command != "q");
+        }
 
 
-		private static void Connect()
-		{
-			var accessPoints = List();
+        private static void Execute(string command)
+        {
+            switch (command)
+            {
+                case "l":
+                    List();
+                    break;
+                case "d":
+                    Disconnect();
+                    break;
+                case "c":
+                    Connect();
+                    break;
+                case "s":
+                    Status();
+                    break;
+                case "x":
+                    ProfileXML();
+                    break;
+                case "r":
+                    DeleteProfile();
+                    break;
+                case "i":
+                    ShowInfo();
+                    break;
+                case "q":
+                    break;
+                default:
+                    Console.WriteLine("\r\nIncorrect command.");
+                    break;
+            }
+        }
 
-			Console.Write("\r\nEnter the index of the network you wish to connect to: ");
+        private static void Disconnect()
+        {
+            wifi.Disconnect();
+        }
 
-			int selectedIndex = int.Parse(Console.ReadLine());
-			if (selectedIndex > accessPoints.ToArray().Length || accessPoints.ToArray().Length == 0)
-			{
-				Console.Write("\r\nIndex out of bounds");
-				return;
-			}
-			AccessPoint selectedAP = accessPoints.ToList()[selectedIndex];
+        private static void Status()
+        {
+            Console.WriteLine("\r\n-- CONNECTION STATUS --");
+            if (wifi.ConnectionStatus == WifiStatus.Connected)
+                Console.WriteLine("You are connected to a wifi");
+            else
+                Console.WriteLine("You are not connected to a wifi");
+        }
 
-			// Auth
-			AuthRequest authRequest = new AuthRequest(selectedAP);
-			bool overwrite = true;
+        private static IEnumerable<AccessPoint> List()
+        {
+            Console.WriteLine("\r\n-- Access point list --");
+            IEnumerable<AccessPoint> accessPoints = wifi.GetAccessPoints().OrderByDescending(ap => ap.SignalStrength);
 
-			if (authRequest.IsPasswordRequired)
-			{
-				if (selectedAP.HasProfile)
-					// If there already is a stored profile for the network, we can either use it or overwrite it with a new password.
-				{
-					Console.Write("\r\nA network profile already exist, do you want to use it (y/n)? ");
-					if (Console.ReadLine().ToLower() == "y")
-					{
-						overwrite = false;
-					}
-				}
+            int i = 0;
+            foreach (AccessPoint ap in accessPoints)
+                Console.WriteLine("{0}. {1} {2}% Connected: {3}", i++, ap.Name, ap.SignalStrength, ap.IsConnected);
 
-				if (overwrite)
-				{
-					if (authRequest.IsUsernameRequired)
-					{
-						Console.Write("\r\nPlease enter a username: ");
-						authRequest.Username = Console.ReadLine();
-					}
+            return accessPoints;
+        }
 
-					authRequest.Password = PasswordPrompt(selectedAP);
+        private static void Connect(string name, string password)
+        {
+            var accessPoints = List();
 
-					if (authRequest.IsDomainSupported)
-					{
-						Console.Write("\r\nPlease enter a domain: ");
-						authRequest.Domain = Console.ReadLine();
-					}
-				}
-			}
+            AccessPoint selectedAP = accessPoints.ToList().Where(x => x.Name.Equals(name)).FirstOrDefault();
+            if (selectedAP == null)
+            {
+                Console.Write(String.Format("\r\n wifi:{0} is not exist", name));
+                return;
+            }
+            // Auth
+            AuthRequest authRequest = new AuthRequest(selectedAP);
+            bool overwrite = true;
 
-			selectedAP.ConnectAsync(authRequest, overwrite, OnConnectedComplete);
-		}
+            if (authRequest.IsPasswordRequired)
+            {
+                if (selectedAP.HasProfile)
+                // If there already is a stored profile for the network, we can either use it or overwrite it with a new password.
+                {
+                    Console.Write("\r\nA network profile already exist, will reconnect: " + name);
+                }
 
-		private static string PasswordPrompt(AccessPoint selectedAP)
-		{
-			string password = string.Empty;
+                if (overwrite)
+                {
+                    var validPassFormat = selectedAP.IsValidPassword(password);
+                    if (!validPassFormat)
+                        Console.WriteLine("\r\nPassword is not valid for this network type.");
 
-			bool validPassFormat = false;
+                    authRequest.Password = password;
 
-			while (!validPassFormat)
-			{
-				Console.Write("\r\nPlease enter the wifi password: ");
-				password = Console.ReadLine();
+                }
+            }
+            selectedAP.ConnectAsync(authRequest, overwrite, OnConnectedComplete);
+        }
 
-				validPassFormat = selectedAP.IsValidPassword(password);
+        private static void Connect()
+        {
+            var accessPoints = List();
 
-				if (!validPassFormat)
-					Console.WriteLine("\r\nPassword is not valid for this network type.");
-			}
+            Console.Write("\r\nEnter the index of the network you wish to connect to: ");
 
-			return password;
-		}
+            int selectedIndex = int.Parse(Console.ReadLine());
+            if (selectedIndex > accessPoints.ToArray().Length || accessPoints.ToArray().Length == 0)
+            {
+                Console.Write("\r\nIndex out of bounds");
+                return;
+            }
+            AccessPoint selectedAP = accessPoints.ToList()[selectedIndex];
 
-		private static void ProfileXML()
-		{
-			var accessPoints = List();
+            // Auth
+            AuthRequest authRequest = new AuthRequest(selectedAP);
+            bool overwrite = true;
 
-			Console.Write("\r\nEnter the index of the network you wish to print XML for: ");
+            if (authRequest.IsPasswordRequired)
+            {
+                if (selectedAP.HasProfile)
+                // If there already is a stored profile for the network, we can either use it or overwrite it with a new password.
+                {
+                    Console.Write("\r\nA network profile already exist, do you want to use it (y/n)? ");
+                    if (Console.ReadLine().ToLower() == "y")
+                    {
+                        overwrite = false;
+                    }
+                }
 
-			int selectedIndex = int.Parse(Console.ReadLine());
-			if (selectedIndex > accessPoints.ToArray().Length || accessPoints.ToArray().Length == 0)
-			{
-				Console.Write("\r\nIndex out of bounds");
-				return;
-			}
-			AccessPoint selectedAP = accessPoints.ToList()[selectedIndex];
+                if (overwrite)
+                {
+                    if (authRequest.IsUsernameRequired)
+                    {
+                        Console.Write("\r\nPlease enter a username: ");
+                        authRequest.Username = Console.ReadLine();
+                    }
 
-			Console.WriteLine("\r\n{0}\r\n", selectedAP.GetProfileXML());
-		}
+                    authRequest.Password = PasswordPrompt(selectedAP);
 
-		private static void DeleteProfile()
-		{
-			var accessPoints = List();
+                    if (authRequest.IsDomainSupported)
+                    {
+                        Console.Write("\r\nPlease enter a domain: ");
+                        authRequest.Domain = Console.ReadLine();
+                    }
+                }
+            }
 
-			Console.Write("\r\nEnter the index of the network you wish to delete the profile: ");
+            selectedAP.ConnectAsync(authRequest, overwrite, OnConnectedComplete);
+        }
 
-			int selectedIndex = int.Parse(Console.ReadLine());
-			if (selectedIndex > accessPoints.ToArray().Length || accessPoints.ToArray().Length == 0)
-			{
-				Console.Write("\r\nIndex out of bounds");
-				return;
-			}
-			AccessPoint selectedAP = accessPoints.ToList()[selectedIndex];
+        private static string PasswordPrompt(AccessPoint selectedAP)
+        {
+            string password = string.Empty;
 
-			selectedAP.DeleteProfile();
-			Console.WriteLine("\r\nDeleted profile for: {0}\r\n", selectedAP.Name);
-		}
+            bool validPassFormat = false;
 
+            while (!validPassFormat)
+            {
+                Console.Write("\r\nPlease enter the wifi password: ");
+                password = Console.ReadLine();
 
-		private static void ShowInfo()
-		{
-			var accessPoints = List();
+                validPassFormat = selectedAP.IsValidPassword(password);
 
-			Console.Write("\r\nEnter the index of the network you wish to see info about: ");
+                if (!validPassFormat)
+                    Console.WriteLine("\r\nPassword is not valid for this network type.");
+            }
 
-			int selectedIndex = int.Parse(Console.ReadLine());
-			if (selectedIndex > accessPoints.ToArray().Length || accessPoints.ToArray().Length == 0)
-			{
-				Console.Write("\r\nIndex out of bounds");
-				return;
-			}
-			AccessPoint selectedAP = accessPoints.ToList()[selectedIndex];
+            return password;
+        }
 
-			Console.WriteLine("\r\n{0}\r\n", selectedAP.ToString());
-		}
+        private static void ProfileXML()
+        {
+            var accessPoints = List();
 
-		private static void wifi_ConnectionStatusChanged(object sender, WifiStatusEventArgs e)
-		{
-			Console.WriteLine("\nNew status: {0}", e.NewStatus.ToString());
-		}
+            Console.Write("\r\nEnter the index of the network you wish to print XML for: ");
 
-		private static void OnConnectedComplete(bool success)
-		{
-			Console.WriteLine("\nOnConnectedComplete, success: {0}", success);
-		}
-	}
+            int selectedIndex = int.Parse(Console.ReadLine());
+            if (selectedIndex > accessPoints.ToArray().Length || accessPoints.ToArray().Length == 0)
+            {
+                Console.Write("\r\nIndex out of bounds");
+                return;
+            }
+            AccessPoint selectedAP = accessPoints.ToList()[selectedIndex];
+
+            Console.WriteLine("\r\n{0}\r\n", selectedAP.GetProfileXML());
+        }
+
+        private static void DeleteProfile()
+        {
+            var accessPoints = List();
+
+            Console.Write("\r\nEnter the index of the network you wish to delete the profile: ");
+
+            int selectedIndex = int.Parse(Console.ReadLine());
+            if (selectedIndex > accessPoints.ToArray().Length || accessPoints.ToArray().Length == 0)
+            {
+                Console.Write("\r\nIndex out of bounds");
+                return;
+            }
+            AccessPoint selectedAP = accessPoints.ToList()[selectedIndex];
+
+            selectedAP.DeleteProfile();
+            Console.WriteLine("\r\nDeleted profile for: {0}\r\n", selectedAP.Name);
+        }
+
+        private static void ShowInfo()
+        {
+            var accessPoints = List();
+
+            Console.Write("\r\nEnter the index of the network you wish to see info about: ");
+
+            int selectedIndex = int.Parse(Console.ReadLine());
+            if (selectedIndex > accessPoints.ToArray().Length || accessPoints.ToArray().Length == 0)
+            {
+                Console.Write("\r\nIndex out of bounds");
+                return;
+            }
+            AccessPoint selectedAP = accessPoints.ToList()[selectedIndex];
+
+            Console.WriteLine("\r\n{0}\r\n", selectedAP.ToString());
+        }
+
+        private static void wifi_ConnectionStatusChanged(object sender, WifiStatusEventArgs e)
+        {
+            Console.WriteLine("\nNew status: {0}", e.NewStatus.ToString());
+        }
+
+        private static void OnConnectedComplete(bool success)
+        {
+            Console.WriteLine("\nOnConnectedComplete, success: {0}", success);
+        }
+    }
 }
