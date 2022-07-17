@@ -17,20 +17,36 @@ namespace SimpleWifi.Example
         private static void Main(string[] args)
         {
             //ConnectByCommand();
-            ConnectByNamePassword("home_hao", "13817601846");
+            ConnectByNamePassword("home_hao", "*******");
         }
 
         private static void ConnectByNamePassword(string name, string passwod)
         {
+            Console.WriteLine("please input reconnect second");
+            var sleepSeconds = 5;
+            try
+            {
+                sleepSeconds = Int32.Parse(Console.ReadLine().ToLower());
+            }
+            catch (Exception)
+            {
+            }
+            Console.WriteLine("reconnect second is:" + sleepSeconds);
+
+            wifi = new Wifi();
+            // wifi.ConnectionStatusChanged += wifi_ConnectionStatusChanged;
+            if (wifi.NoWifiAvailable)
+                Console.WriteLine("\r\n-- NO WIFI CARD WAS FOUND --");
+
             while (true)
             {
-                wifi = new Wifi();
-                // wifi.ConnectionStatusChanged += wifi_ConnectionStatusChanged;
-                if (wifi.NoWifiAvailable)
-                    Console.WriteLine("\r\n-- NO WIFI CARD WAS FOUND --");
-
-                Connect(name, passwod);
-                Thread.Sleep(1000 * 30);
+                var pingRes = Utils.CmdPing("baidu.com");
+                Console.WriteLine(String.Format("ping result: " + pingRes));
+                if (!pingRes.Equals(PingResult.Connected))
+                {
+                    Connect(name, passwod);
+                }
+                Thread.Sleep(1000 * sleepSeconds);
             }
 
         }
